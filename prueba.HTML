@@ -5,6 +5,8 @@
     <canvas id="canvas" width="640" height="640" style="border:1px solid #d3d3d3;"></canvas>
     <script src="https://pagecdn.io/lib/mathjs/10.4.0/math.min.js" crossorigin="anonymous"  ></script>
     <script src="m4.js"></script>
+    <script src="graphics.js"></script>
+    <script src="transformaciones.js"></script>
     <script type="application/javascript" >
         var canvas = document.getElementById("canvas");
         var ctx = canvas.getContext('2d');
@@ -13,46 +15,31 @@
         let escena = {
             v: [],
             ndx: [],
-            materiales: [],
+            poligonos: [],
             luz: []
         };
 
         function inicializar(){
             corte3();
             proyectar();
-            render(escena, canvas.height/4, canvas.height/2);
-        }
-
-        function corte2(){
-            let pl = plano(4);
-            let pr = trasladar(pl, 0.1,0,1.5)
-            AgregarAEscena(pr);
-            
-            let c = cubo();
-            let prim = trasladar(c, -1, 0, 0);
-            AgregarAEscena(prim);
-
-            let con = trasladar(cono(10), 1,2,0);
-            AgregarAEscena(con);
-
-            let esf = trasladar(esfera(), 1,-1,0);
-            AgregarAEscena(esf);
+            procesar(escena, canvas.height/4, canvas.height/2);
+            //renderizar();
         }
 
         function corte3() {
 
-            let pl = plano(4);
-            pl = escalar(pl,3,3,3);
-            pl = trasladar(pl, 0,0,-2)
+            // let pl = plano(4);
+            // pl = escalar(pl,3,3,3);
+            // pl = trasladar(pl, 0,0,-2)
             
-            AgregarAEscena(pl, { color: [255,0,0], kd: 1, ka: 1 });
+            // AgregarAEscena(pl, { color: [255,0,0], kd: 1, ka: 1 });
 
-            let pl2 = plano(4);
-            pl2 = escalar(pl2,3,3,3);
-            pl2 = rotar(pl2,0,90,0)
-            p12 = trasladar(pl2, -2,0,0)
+            // let pl2 = plano(4);
+            // pl2 = escalar(pl2,3,3,3);
+            // pl2 = rotar(pl2,0,90,0)
+            // p12 = trasladar(pl2, -2,0,0)
             
-            AgregarAEscena(pl2, { color: [0,255,0], kd: 1, ka: 1 });
+            // AgregarAEscena(pl2, { color: [0,255,0], kd: 1, ka: 1 });
 
             let piso = plano(4);
             piso = escalar(piso,3,3,3);
@@ -61,10 +48,10 @@
 
             AgregarAEscena(piso,{ color: [0,0,255], kd: 1, ka: 1 });
 
-            let esf = trasladar(esfera(32,16), 0,0,0);
+            let esf = trasladar(esfera(24,12), 0,0,0);
             AgregarAEscena(esf, { color: [76, 137, 139], kd: 1, ka: 1 });
 
-            AgregarLuz(-4,-4,-1,1);
+            // AgregarLuz(-4,-4,-1,1);
 
         }
 
@@ -97,51 +84,8 @@
             escena.v = desvectorizar(p);
         }
 
-        function camara(P, N, V){
-            let T = m4.translation(-P[0],-P[1], -P[2]);
-            N = math.add(N, T);
-            let nrm = math.norm(N);
-            let n = [N[0]/nrm, N[1]/nrm, N[2]/nrm]  
-        }
-
         function degToRad(d) {
             return d * Math.PI / 180;
-        }
-
-        //objeto y donde se va a trasladar
-        function trasladar(primitiva, x, y, z){
-
-            let vec = vectorizar(primitiva);  
-            let t = m4.translate(vec, x,y,z) //hace la traslacion con la matriz que retorno normalizar, t = matriz trasladada 
-            let matriz = desvectorizar(t); //deja la matriz en un solo vector de vertices... para poder pintar 
-
-            primitiva.v = matriz; //actuliza el arreglo de vertices 
-
-            return primitiva;
-        }
-
-        function escalar(primitiva,x,y,z){
-            let vec = vectorizar(primitiva);  
-            let t = m4.scale(vec, x,y,z) 
-            let matriz = desvectorizar(t); 
-
-            primitiva.v = matriz; 
-
-            return primitiva;
-        }
-
-        function rotar(primitiva,x,y,z){
-            let vect = vectorizar(primitiva);  
-            
-            let t = m4.xRotate(vect, degToRad(x)) 
-            t = m4.yRotate(t, degToRad(y))
-            t = m4.zRotate(t, degToRad(z))
-
-            let mat = desvectorizar(t); 
-
-            primitiva.v = mat; 
-
-            return primitiva;
         }
         
         //Agregar una primitiva a la escena 
@@ -155,11 +99,11 @@
 
             let arrMat = [];
             for(let i = 0; i < primitiva.ndx.length / 3; i++) {
-                arrMat.push(material);
+                arrMat.push({...material});
             }
 
             escena.ndx = escena.ndx.concat(primitiva.ndx);
-            escena.materiales = escena.materiales.concat(arrMat);
+            escena.poligonos = escena.poligonos.concat(arrMat);
         }
 
         function AgregarLuz(x,y,z,ki){
@@ -169,42 +113,13 @@
             AgregarAEscena(esf,{ color: [243, 255, 51], kd: 1, ka: 1 });
         }
 
-        /// [[...],[...]] convertir en una matriz homogenea  x y z, y el factor h. recorre el arr de vertices y cda 3 posiciones extrae el vector
-        function vectorizar(primitiva){
-            let vertices = primitiva.v;
-            let len = vertices.length / 3;
-            let matriz = [];
-
-            for (let i = 0; i < len; i++) {
-                let e = [ vertices[i*3], vertices[i*3+1], vertices[i*3+2], 1 ];
-                matriz.push(e);
-            }
-
-            return matriz;
-        }
-
-        ///[...]
-        function desvectorizar(matriz){
-            let primitiva = [];
-
-            for (let i = 0; i < matriz.length; i++) {
-                let par = matriz[i];
-
-                primitiva.push(par[0])
-                primitiva.push(par[1] )
-                primitiva.push(par[2] )
-            }
-            return primitiva;
-        }
-        
-        function render(escena, factor_escala, desplazamiento){
+        function procesar(escena, factor_escala, desplazamiento){
             let V = escena.v
             for(let i=0; i<V.length; i++)
                 V[i] = V[i]*factor_escala+desplazamiento;
             dibuja_triangulos();
         }
         
-        //Recibe vertices e indices
         function dibuja_triangulos(){
             let V = escena.v;
             let I = escena.ndx;
@@ -212,7 +127,8 @@
             //El vector de vertices va a grabando de  a 3 en 3 
             for(let i=0; i<I.length; i+=3){
 
-                let color = escena.materiales[i/3].color
+                let indicePoligono = i/3;
+                let color = escena.poligonos[indicePoligono].color
                 ctx.fillStyle = 'rgb('+color[0]+', '+color[1]+', '+color[2]+')';
 
                 let x0 = parseInt(V[I[i]*3]);
@@ -233,14 +149,12 @@
                     [ x2, y2, z2],
                 ]
 
-                obtenerNormal(poligono)
+                calcularEcuacionDePlano(poligono, indicePoligono)
 
                 //pinto las 3 lineas que forman el triangulo
                 algoritmo_bresenham(x0, y0, x1, y1, pintar_pixel); //linea de 0 a 1  
                 algoritmo_bresenham(x0, y0, x2, y2, pintar_pixel); //linea de 0 a 2
                 algoritmo_bresenham(x2, y2, x1, y1, pintar_pixel);//linea de 2 a 1
-
-                ctx.fill();
             }
         }
 
@@ -260,251 +174,96 @@
             }
         }
 
-        function obtenerNormal(poligono){
-            
-            let u = m4.vector(poligono[0],poligono[1])
-            let v = m4.vector(poligono[0],poligono[2])
-            
-            return m4.crossProduct(u,v);
+        function calcularEcuacionDePlano(poligono, indicePoligono){
 
-            //console.log(poligono)
+            let u = m4.vector(poligono[0],poligono[1]);
+            let v = m4.vector(poligono[0],poligono[2]);
+            
+            let vNormal = m4.crossProduct(u,v);
+
+            let a = vNormal[0];
+            let b = vNormal[1];
+            let c = vNormal[2];
+            let d = vNormal[0] * poligono[1][0] + vNormal[1] * poligono[1][1] + vNormal[2] * poligono[1][1]
+
+            let pol = escena.poligonos[indicePoligono];
+            pol.ecuacion = { a:a, b:b, c:c, d:d }
+            pol.puntos = { a: poligono[0], b: poligono[1], c: poligono[2] }
+        }
+
+        function calcularZ(x,y, poligono){
+            let a = poligono.ecuacion.a;
+            let b = poligono.ecuacion.b;
+            let c = poligono.ecuacion.c;
+            let d = poligono.ecuacion.d;
+            
+            return -(a*x + b*y + d) / c 
         }
 
         function pintar_pixel(x, y){
             ctx.fillRect(x, y, 1, 1);
         }
-
-        function cono(segm){
-            let v=[];
-            let ndx =[];
-            for(let i=0; i<segm; i++){
-                v.push(Math.cos(2*Math.PI*i/segm));
-                v.push(1.0);
-                v.push(Math.sin(2*Math.PI*i/segm));
-                ndx.push(segm);
-                ndx.push(i);
-                ndx.push((i+1)%segm);
-                ndx.push(segm+1);
-                ndx.push(i);
-                ndx.push((i+1)%segm);
-            }
-            v.push(0.0); v.push(1.0); v.push(0.0);
-            v.push(0.0); v.push(-1.0); v.push(0.0);
-            return{v, ndx};
-        }
-
-        function cubo() {
-            // segm
-            let  ancho = 1, alto = 1, profundida = 1, segmHorizontales = 1, segmVerticales = 1, segmEnZ_profundida = 1;
-
-            segmHorizontales = Math.floor( segmHorizontales );
-            segmVerticales = Math.floor( segmVerticales );
-            segmEnZ_profundida = Math.floor( segmEnZ_profundida );
-
-            const indices = [];
-            const vertices = [];
-
-            let cantDeVertices = 0;
-           
-            //crea 6 planos
-            generar_plano( 'z', 'y', 'x', - 1, - 1, profundida, alto, ancho, segmEnZ_profundida, segmVerticales, 0 ); // cara laterales
-            generar_plano( 'z', 'y', 'x', 1, - 1, profundida, alto, - ancho, segmEnZ_profundida, segmVerticales, 1 ); // cara lateral
-            generar_plano( 'x', 'z', 'y', 1, 1, ancho, profundida, alto, segmHorizontales, segmEnZ_profundida, 2 ); // acostada
-            generar_plano( 'x', 'z', 'y', 1, - 1, ancho, profundida, - alto, segmHorizontales, segmEnZ_profundida, 3 ); // acostada
-            generar_plano( 'x', 'y', 'z', 1, - 1, ancho, alto, profundida, segmHorizontales, segmVerticales, 4 ); // cara de frontal y posterior    ****
-            generar_plano( 'x', 'y', 'z', - 1, - 1, ancho, alto, - profundida, segmHorizontales, segmVerticales, 5 ); // cara de frontal y posterior
-
-            function generar_plano( u, v, w, udir, vdir, anchoCara, altoCara, profunCara, gridX, gridY) {
-
-                const segmHorizontales = anchoCara / gridX;
-                const segmVerticales = altoCara / gridY;
-
-                const mitadHorizontal = anchoCara / 2;
-                const mitadVertical = altoCara / 2;
-                const mitadProfundidad = profunCara / 2;
-
-                const gridX1 = gridX + 1;
-                const gridY1 = gridY + 1;
-
-                let contVertices = 0;
-                let conteoDeGrupo = 0;
-
-                const vector = {};
-
-                //vertices de 1 cara
-                for ( let iy = 0; iy < gridY1; iy ++ ) {
-                    const y = iy * segmVerticales - mitadVertical;
-                    for ( let ix = 0; ix < gridX1; ix ++ ) {
-                        const x = ix * segmHorizontales - mitadHorizontal;
-
-                        vector[ u ] = x * udir;
-                        vector[ v ] = y * vdir;
-                        vector[ w ] = mitadProfundidad;
-
-                        vertices.push( vector.x, vector.y, vector.z );
-                       
-                        vector[ u ] = 0;
-                        vector[ v ] = 0;
-                        vector[ w ] = profunCara > 0 ? 1 : - 1;
-
-                        contVertices += 1;
-                    }
-                }
-
-                //indices de esa cara
-                for ( let iy = 0; iy < gridY; iy ++ ) {
-                    for ( let ix = 0; ix < gridX; ix ++ ) {
-                        const a = cantDeVertices + ix + gridX1 * iy;
-                        const b = cantDeVertices + ix + gridX1 * ( iy + 1 );
-                        const c = cantDeVertices + ( ix + 1 ) + gridX1 * ( iy + 1 );
-                        const d = cantDeVertices + ( ix + 1 ) + gridX1 * iy;
-
-                        indices.push( a, b, d );
-                        indices.push( b, c, d );
-
-                        conteoDeGrupo += 6;
-                    }
-                }
-
-                //groupStart += groupCount;
-
-                cantDeVertices += contVertices;
-            }
-
-        return { ndx:indices, v:vertices }
-        }
-
-        function malla_disco (segments) {
-
-			let radius = 1,  thetaStart = 0, thetaLength = Math.PI * 2
-			segments = Math.max(3, segments);
-
-			const indices = [];
-			const vertices = [];
-
-			vertices.push(0, 0, 0);
-
-			for (let s = 0, i = 3; s <= segments; s++, i += 3) {
-				const segment = thetaStart + s / segments * thetaLength; 
-                let vertex = {
-                    x: radius * Math.cos(segment),
-                    y: radius * Math.sin(segment),
-                    z: 0
-                }
-				vertices.push(vertex.x, vertex.y, vertex.z); 
-			} 
-
-			for (let i = 1; i <= segments; i++) {
-				indices.push(i, i + 1, 0);
-			}
-            return {ndx:indices, v:vertices };
-		}
-       
-        function plano(segments = 1){
-            let segmHorizontales = segmVerticales = segments //pa q sea un cuadrado ancho y alto es igual que lo llegue por segmentos
-            let ancho = 1;//ancho del segmento
-            let alto = 1;
-        
-            const mitadAncho = ancho / 2;
-            const mitadAlto = alto / 2;
-        
-            const gridX = Math.floor( segmHorizontales ); //aprox entero mas cercano menor
-            const gridY = Math.floor( segmVerticales ); //aprox entero mas cercano menor
-        
-            const gridX1 = gridX + 1; 
-            const gridY1 = gridY + 1;
-        
-            const anchoSegmento = ancho / gridX; //ancho del segmento 
-            const altoSegmento = alto / gridY; //alto del segmento
-
-            const indices = [];
-            const vertices = [];
-        
-            for ( let iy = 0; iy < gridY1; iy ++ ) {
-                const y = iy * altoSegmento - mitadAlto; //ubica el plano en el centro del plano cartesiano
-                for ( let ix = 0; ix < gridX1; ix ++ ) {
-                    const x = ix * anchoSegmento - mitadAncho;
-                    vertices.push( x, - y, 0 );
-                }
-            }
-        
-            for ( let iy = 0; iy < gridY; iy ++ ) {
-                for ( let ix = 0; ix < gridX; ix ++ ) {
-                    const a = ix + gridX1 * iy;
-                    const b = ix + gridX1 * ( iy + 1 );
-                    const c = ( ix + 1 ) + gridX1 * ( iy + 1 );
-                    const d = ( ix + 1 ) + gridX1 * iy;
-                    indices.push( a, b, d );
-                    indices.push( b, c, d );
-                }
-            }
-            return{ ndx:indices, v:vertices }
-        }
-        
-        function esfera(longitud = 32, latitud = 16) {
-
-            let radio = 1, inicioPI = 0, longitudPI = Math.PI * 2, inicioTeta = 0, longTeta = Math.PI
-
-            longitud = Math.max( 3, Math.floor( longitud ) ); //minimo longitud 3 si el valor de entrada es menor
-            latitud = Math.max( 2, Math.floor( latitud ) ); //minimo latitud 2 si el valor de entrada es menor
-
-            const tetaFinal = Math.min( inicioTeta + longTeta, Math.PI );//teta_final -> 
-
-            let index = 0;
-            const grid = [];
-            const vertice = {};
-
-            // buffers
-
-            const indices = [];
-            const vertices = [];
-
-            for ( let iy = 0; iy <= latitud; iy ++ ) {
-
-                const verticesRow = [];
-
-                const v = iy / latitud;
-
-                for ( let ix = 0; ix <= longitud; ix ++ ) {
-
-                    const u = ix / longitud;
-
-                    // vertex
-
-                    vertice.x = - radio * Math.cos( inicioPI + u * longitudPI ) * Math.sin( inicioTeta + v * longTeta );
-                    vertice.y = radio * Math.cos( inicioTeta + v * longTeta );
-                    vertice.z = radio * Math.sin( inicioPI + u * longitudPI ) * Math.sin( inicioTeta + v * longTeta );
-
-                    vertices.push( vertice.x, vertice.y, vertice.z );
-
-                    verticesRow.push( index ++ );
-                }
-
-                grid.push( verticesRow );
-
-            }
-
-            // indices
-
-            for ( let iy = 0; iy < latitud; iy ++ ) {
-                for ( let ix = 0; ix < longitud; ix ++ ) {
-                    const a = grid[ iy ][ ix + 1 ];
-                    const b = grid[ iy ][ ix ];
-                    const c = grid[ iy + 1 ][ ix ];
-                    const d = grid[ iy + 1 ][ ix + 1 ];
-
-                    if ( iy !== 0 || inicioTeta > 0 ) indices.push( a, b, d );
-                    if ( iy !== latitud - 1 || tetaFinal < Math.PI ) indices.push( b, c, d );
-                }
-            }
-
-            return { ndx: indices, v: vertices }
-        }
   
-        function normalizar(x,y,z){
+        function normalizar(point){
+            let x = point[0];
+            let y = point[1];
+            let z = point[2];
+
             var m = Math.sqrt(x*x + y*y + z*z);
-            return { x: x/m, y: y/m, z: z/m }
+            return [ x/m,  y/m,  z/m ]
         }
+
+        function sign (p1, p2, p3)
+        {
+            return (p1[0] - p3[0]) * (p2[1] - p3[1]) - (p2[0] - p3[0]) * (p1[1] - p3[1]);
+        }
+
+        function PointInTriangle (v1, v2, v3, pt)
+        {
+            let d1, d2, d3;
+            let has_neg = false, has_pos = false;
+
+            d1 = sign(pt, v1, v2);
+            d2 = sign(pt, v2, v3);
+            d3 = sign(pt, v3, v1);
+
+            has_neg = (d1 < 0) || (d2 < 0) || (d3 < 0);
+            has_pos = (d1 > 0) || (d2 > 0) || (d3 > 0);
+
+            return !(has_neg && has_pos);
+        }
+
+        function renderizar(){
+            let pixel = [];
+
+            for (let x = 0; x < canvas.clientWidth; x++) {
+                for (let y = 0; y < canvas.clientHeight; y++) {
+                    
+                    let z = 100000000;
+                    let color = [255,255,255]
+
+                    for (let p = 0; p < escena.poligonos.length; p++) {
+                        let poligono = escena.poligonos[p];
+                        let pz = calcularZ(x,y,poligono)
+                        let estaContenido = PointInTriangle(poligono.puntos.a, poligono.puntos.b, poligono.puntos.c, [ x,y ])
+
+                        if(pz < z && estaContenido)
+                        {
+                            z = pz;
+                            color = [ poligono.color[0] - pz, poligono.color[1], poligono.color[2] ];
+                        }
+                    }
+                    pixel.push({x,y,color})  
+                }
+            }
+
+            pixel.forEach(p => {
+                ctx.fillStyle = 'rgb('+p.color[0]+', '+p.color[1]+', '+p.color[2]+')';
+                pintar_pixel(p.x, p.y)
+            });
+        }
+
+        
 
         inicializar()
     </script> 
