@@ -2,6 +2,7 @@
 <html>
     <!--Estudiante: Ingri Daniela Sepulveda Montaña - Computacion Grafica - Algoritmo:Bresenham  -->
   <body>
+    <button onclick="renderizar()">Aplicar iluminacion</button><br>
     <canvas id="canvas" width="640" height="640" style="border:1px solid #d3d3d3;"></canvas>
     <script src="https://pagecdn.io/lib/mathjs/10.4.0/math.min.js" crossorigin="anonymous"></script>
     <script src="m4.js"></script>
@@ -34,27 +35,27 @@
 
         function crearEscena() {
 
-            let pl = plano(2);
+            let pl = plano(8);
             pl = escalar(pl,3,3,3);
-            pl = trasladar(pl,0,0,-4)
+            pl = trasladar(pl,0,0,-1)
 
-            AgregarAEscena(pl, { kd: 1, ka: 1 }, 255,0,0);
+            AgregarAEscena(pl, { kd: 0.4, ka: 0.3 }, 255,0,0);
 
-            let pl2 = plano(2);
+            let pl2 = plano(8);
             pl2 = escalar(pl2,3,3,3);
             pl2 = rotar(pl2,0,90,0)
             p12 = trasladar(pl2, -2,0,0)
             
-            AgregarAEscena(pl2, { kd: 1, ka: 1 }, 0,255,68);
+            AgregarAEscena(pl2, { kd: 0.4, ka: 0.7 }, 0,255,68);
 
-            let piso = plano(4);
+            let piso = plano(8);
             piso = escalar(piso,3,3,3);
             piso = rotar(piso,90,0,0)
             piso = trasladar(piso, 0,2,0)
 
-            AgregarAEscena(piso,{  kd: 1, ka: 1 }, 50,120,255);
+            AgregarAEscena(piso,{  kd: 1, ka: 0.3 }, 50,120,255);
 
-            let esf = trasladar(esfera(8,3), 0,0,-2);
+            let esf = trasladar(esfera(32,12), 0,0,1);
             AgregarAEscena(esf, { kd: 0.5, ka: 0.4 }, 76, 137, 139);
 
             AgregarLuz(-3,2,4,1);
