@@ -10,7 +10,9 @@
     <script type="application/javascript" >
         var canvas = document.getElementById("canvas");
         var ctx = canvas.getContext('2d');
-        
+        var camara;
+        var li = 1;
+
         //vertices de todo
         let escena = {
             v: [],
@@ -20,47 +22,50 @@
         };
 
         function inicializar(){
-            corte3();
+            crearEscena();
+            ajustarEscala(escena, canvas.height/4, canvas.height/2);
+            generarPoligonos(); 
+            iluminar();
             proyectar();
-            procesar(escena, canvas.height/4, canvas.height/2);
+            renderModel();
+            actualizarEcuacionesPlano();
             //renderizar();
         }
 
-        function corte3() {
+        function crearEscena() {
 
-            let pl = plano(4);
+            let pl = plano(2);
             pl = escalar(pl,3,3,3);
-            pl = trasladar(pl, 0,0,-2)
-            
-            AgregarAEscena(pl, { color: [255,0,0], kd: 1, ka: 1 });
+            pl = trasladar(pl,0,0,-4)
 
-            let pl2 = plano(4);
+            AgregarAEscena(pl, { kd: 1, ka: 1 }, 255,0,0);
+
+            let pl2 = plano(2);
             pl2 = escalar(pl2,3,3,3);
             pl2 = rotar(pl2,0,90,0)
             p12 = trasladar(pl2, -2,0,0)
             
-            AgregarAEscena(pl2, { color: [0,255,0], kd: 1, ka: 1 });
+            AgregarAEscena(pl2, { kd: 1, ka: 1 }, 0,255,68);
 
             let piso = plano(4);
             piso = escalar(piso,3,3,3);
             piso = rotar(piso,90,0,0)
             piso = trasladar(piso, 0,2,0)
 
-            AgregarAEscena(piso,{ color: [0,0,255], kd: 1, ka: 1 });
+            AgregarAEscena(piso,{  kd: 1, ka: 1 }, 50,120,255);
 
-            let esf = trasladar(esfera(24,12), 0,0,0);
-            AgregarAEscena(esf, { color: [76, 137, 139], kd: 1, ka: 1 });
+            let esf = trasladar(esfera(8,3), 0,0,-2);
+            AgregarAEscena(esf, { kd: 0.5, ka: 0.4 }, 76, 137, 139);
 
-            AgregarLuz(-4,-4,-1,1);
-
+            AgregarLuz(-3,2,4,1);
         }
 
         //crear la proyeccion 
         function proyectar(){
 
             //vlr iniciales
-            var translation = [1, 1, 1];
-            var rotation = [degToRad(30), degToRad(45), degToRad(0)];
+            var translation = [-0.9,0.5,0.5];
+            var rotation = [degToRad(10), degToRad(5), degToRad(10)];// [degToRad(45), degToRad(10), degToRad(10)];
 
             let escala = 0.003
 
@@ -70,7 +75,7 @@
             //frustrum
             var aspect = canvas.clientWidth / canvas.clientHeight;
             var zNear = 0.1; 
-            var zFar = 5;
+            var zFar = 6;
             
             var matrix = m4.perspective(fieldOfViewRadians, aspect, zNear, zFar);
             matrix = m4.translate(matrix, translation[0], translation[1], translation[2]);
@@ -79,17 +84,21 @@
             matrix = m4.zRotate(matrix, rotation[2]);
             matrix = m4.scale(matrix, scale[0], scale[1], scale[2]);
 
-            let p = m4.multiply(vectorizar(escena), matrix);
+            //poligonos a coordenadas de camara
+            escena.poligonos.forEach(pol => {
+                let puntos = pol.puntos; //[ [x,y,z, 1], [], []]
 
-            escena.v = desvectorizar(p);
+                let zw =  m4.multiply(puntos, matrix); // [[],[],[]]
+
+                puntos[0] = zw[0].map(v => parseInt(v))
+                puntos[1] = zw[1].map(v => parseInt(v))
+                puntos[2] = zw[2].map(v => parseInt(v))
+
+            });
         }
 
-        function degToRad(d) {
-            return d * Math.PI / 180;
-        }
-        
         //Agregar una primitiva a la escena 
-        function AgregarAEscena(primitiva, material){
+        function AgregarAEscena(primitiva, material, r,g,b){
             escena.v = escena.v.concat(primitiva.v);
             
             let offset = escena.ndx.length == 0 ? 0 : Math.max(...escena.ndx) + 1;
@@ -97,30 +106,34 @@
                 primitiva.ndx[i] += offset;
             }
 
-            let arrMat = [];
+            let matPoligons = [];
             for(let i = 0; i < primitiva.ndx.length / 3; i++) {
-                arrMat.push({...material});
+                let mat = {...material}
+                mat.color = [r,g,b]
+                matPoligons.push(mat);
             }
 
             escena.ndx = escena.ndx.concat(primitiva.ndx);
-            escena.poligonos = escena.poligonos.concat(arrMat);
+            escena.poligonos = escena.poligonos.concat(matPoligons);
+
+            return matPoligons;
         }
 
         function AgregarLuz(x,y,z,ki){
-            escena.luz.push({ coord: [x,y,z], ki: ki })
             let esf = trasladar(esfera(16,8), x,y,z);
             esf = escalar(esf, 0.4,0.4,0.4)
-            AgregarAEscena(esf,{ color: [243, 255, 51], kd: 1, ka: 1 });
+            let pol = AgregarAEscena(esf,{ esLuz: true }, 243, 255, 51);
+
+            escena.luz.push({ pol: pol[0], ki: ki })
         }
 
-        function procesar(escena, factor_escala, desplazamiento){
+        function ajustarEscala(escena, factor_escala, desplazamiento){
             let V = escena.v
             for(let i=0; i<V.length; i++)
                 V[i] = V[i]*factor_escala+desplazamiento;
-            dibuja_triangulos();
         }
         
-        function dibuja_triangulos(){
+        function generarPoligonos(){
             let V = escena.v;
             let I = escena.ndx;
 
@@ -129,7 +142,6 @@
 
                 let indicePoligono = i/3;
                 let color = escena.poligonos[indicePoligono].color
-                ctx.fillStyle = 'rgb('+color[0]+', '+color[1]+', '+color[2]+')';
 
                 let x0 = parseInt(V[I[i]*3]);
                 let y0 = parseInt(V[I[i]*3+1]);
@@ -143,83 +155,74 @@
                 let y2 = parseInt(V[I[i+2]*3+1]);
                 let z2 = parseInt(V[I[i+2]*3+2]);
 
-                let poligono = [
-                    [ x0, y0, z0],
-                    [ x1, y1, z1],
-                    [ x2, y2, z2],
+                let puntosPoligono = [
+                    [ x0, y0, z0, 1], //a
+                    [ x1, y1, z1, 1], //b
+                    [ x2, y2, z2, 1], //c
                 ]
 
-                calcularEcuacionDePlano(poligono, indicePoligono)
+                let ec = ecuacionPlano(puntosPoligono);
+
+                let pol = escena.poligonos[indicePoligono];
+                pol.puntos = puntosPoligono 
+                pol.vectorNormal = ec.vNormal;
+            }
+        }
+
+        function renderModel(){
+            escena.poligonos.forEach(pol => {
+
+                let x0 = pol.puntos[0][0];
+                let y0 = pol.puntos[0][1];
+                let x1 = pol.puntos[1][0];
+                let y1 = pol.puntos[1][1];
+                let y2 = pol.puntos[2][1];
+                let x2 = pol.puntos[2][0];
+
+                ctx.fillStyle = 'rgb('+pol.color[0]+', '+pol.color[1]+', '+pol.color[2]+')';
 
                 //pinto las 3 lineas que forman el triangulo
                 algoritmo_bresenham(x0, y0, x1, y1, pintar_pixel); //linea de 0 a 1  
                 algoritmo_bresenham(x0, y0, x2, y2, pintar_pixel); //linea de 0 a 2
                 algoritmo_bresenham(x2, y2, x1, y1, pintar_pixel);//linea de 2 a 1
-            }
+            });
         }
 
-        function algoritmo_bresenham(x0, y0, x1, y1, callback){
-            var dx = Math.abs(x1 - x0);
-            var dy = Math.abs(y1 - y0);
-            var sx = (x0 < x1) ? 1 : -1;
-            var sy = (y0 < y1) ? 1 : -1;
-            var err = dx - dy;
-
-            while(true){
-                callback(x0, y0);
-                if((x0 === x1) && (y0 === y1)) break;
-                var e2 = 2*err;
-                if(e2 > -dy){ err -= dy; x0 += sx; }
-                if(e2 < dy){ err += dx; y0 += sy; }       
-            }
+        function actualizarEcuacionesPlano(){
+            escena.poligonos.forEach(pol => {
+                pol.ec = ecuacionPlano(pol.puntos)
+            });
         }
 
-        function calcularEcuacionDePlano(poligono, indicePoligono){
-
-            let u = m4.vector(poligono[1],poligono[0]);
-            let v = m4.vector(poligono[2],poligono[0]);
+        function ecuacionPlano(puntosPoligono){
+            let u = m4.vector(puntosPoligono[1],puntosPoligono[0]);
+            let v = m4.vector(puntosPoligono[2],puntosPoligono[0]);
             
-            let vNormal = math.cross(u,v);
+            let vNormal = math.cross(v,u);
 
             let a = vNormal[0];
             let b = vNormal[1];
             let c = vNormal[2];
-            let d = -1 * (vNormal[0] * poligono[0][0] + vNormal[1] * poligono[0][1] + vNormal[2] * poligono[0][2])
+            let d = -1 * (vNormal[0] * puntosPoligono[0][0] + vNormal[1] * puntosPoligono[0][1] + vNormal[2] * puntosPoligono[0][2])
 
-            let pol = escena.poligonos[indicePoligono];
-            pol.ecuacion = { a:a, b:b, c:c, d:d }
-            pol.puntos = { a: poligono[0], b: poligono[1], c: poligono[2] }
+            return { a,b,c,d,vNormal}
         }
 
-        function calcularZ(x,y, poligono){
-            let a = poligono.ecuacion.a;
-            let b = poligono.ecuacion.b;
-            let c = poligono.ecuacion.c;
-            let d = poligono.ecuacion.d;
-            
+        function calcularZ(x,y, a,b,c,d){
             return -(a*x + b*y + d) / c 
         }
 
         function pintar_pixel(x, y){
             ctx.fillRect(x, y, 1, 1);
         }
-  
-        function normalizar(point){
-            let x = point[0];
-            let y = point[1];
-            let z = point[2];
 
-            var m = Math.sqrt(x*x + y*y + z*z);
-            return [ x/m,  y/m,  z/m ]
-        }
-
-        function sign (p1, p2, p3)
+        function puntoEnTriangulo (v1, v2, v3, pt)
         {
-            return (p1[0] - p3[0]) * (p2[1] - p3[1]) - (p2[0] - p3[0]) * (p1[1] - p3[1]);
-        }
+            function sign (p1, p2, p3)
+            {
+                return (p1[0] - p3[0]) * (p2[1] - p3[1]) - (p2[0] - p3[0]) * (p1[1] - p3[1]);
+            }
 
-        function PointInTriangle (v1, v2, v3, pt)
-        {
             let d1, d2, d3;
             let has_neg = false, has_pos = false;
 
@@ -244,8 +247,11 @@
 
                     for (let p = 0; p < escena.poligonos.length; p++) {
                         let poligono = escena.poligonos[p];
-                        let pz = calcularZ(x,y,poligono)
-                        let estaContenido = PointInTriangle(poligono.puntos.a, poligono.puntos.b, poligono.puntos.c, [ x,y ])
+
+                        let ec = poligono.ec
+
+                        let pz = calcularZ(x,y,ec.a,ec.b,ec.c,ec.d)
+                        let estaContenido = puntoEnTriangulo(poligono.puntos[0], poligono.puntos[1], poligono.puntos[2], [ x,y ])
 
                         if(pz < z && estaContenido)
                         {
@@ -263,6 +269,61 @@
             });
         }
 
+        function iluminar(){
+
+            let ppAlto = 0;
+            let result;
+
+            for (let p = 0; p < escena.poligonos.length; p++) {
+                let poligono = escena.poligonos[p];
+
+                if(poligono.esLuz != undefined)
+                    continue;
+
+                let phong = 0;
+
+                for (let l = 0; l < escena.luz.length; l++) {
+                    const luz = escena.luz[l];
+                    
+                    //un punto en el plano del poligono
+                    let puntoA = poligono.puntos[0]; //[x,y,z]
+
+                    //punto de luz
+                    let puntoB = luz.pol.puntos[0] //[x,y,z]
+
+                    //obtener vector de luz
+                    //normalizar vector de luz
+
+                    let vectorLuz = normalizar(m4.vector(puntoA, puntoB));
+
+                    //obtener normal del poligono
+                    //normalizar normal del poligono
+
+                    let vNormal = normalizar(poligono.vectorNormal);
+
+                    //calcular producto punto de ambos vectores
+
+                    let pp = math.dot(vectorLuz, vNormal);
+                    if(pp > ppAlto)
+                    {
+                        ppAlto = pp;
+                        result = { ppAlto, poligono, vectorLuz, luz }
+                    }
+
+                    //calcular valor de difussion
+
+                    phong += poligono.kd * pp * luz.ki
+                }
+
+                phong += li * poligono.ka //Luz ambiental
+
+                //multiplicar valor por cada canal de color
+                //actualizar color
+                poligono.color[0] = parseInt(poligono.color[0] *  phong);
+                poligono.color[1] = parseInt(poligono.color[1] *  phong);
+                poligono.color[2] = parseInt(poligono.color[2] *  phong);
+            }
+        }
         
 
         inicializar()

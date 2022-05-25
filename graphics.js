@@ -1,3 +1,31 @@
+        function degToRad(d) {
+            return d * Math.PI / 180;
+        }
+
+        function normalizar(point){
+            let x = point[0];
+            let y = point[1];
+            let z = point[2];
+
+            var m = Math.sqrt(x*x + y*y + z*z);
+            return [ x/m,  y/m,  z/m ]
+        }
+
+        function algoritmo_bresenham(x0, y0, x1, y1, callback){
+            var dx = Math.abs(x1 - x0);
+            var dy = Math.abs(y1 - y0);
+            var sx = (x0 < x1) ? 1 : -1;
+            var sy = (y0 < y1) ? 1 : -1;
+            var err = dx - dy;
+
+            while(true){
+                callback(x0, y0);
+                if((x0 === x1) && (y0 === y1)) break;
+                var e2 = 2*err;
+                if(e2 > -dy){ err -= dy; x0 += sx; }
+                if(e2 < dy){ err += dx; y0 += sy; }       
+            }
+        }
 
         function cono(segm){
             let v=[];
