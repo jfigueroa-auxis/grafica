@@ -38,17 +38,7 @@ var m4 = {
     },
 
     vector: function(p1,p2){
-      return p1.map(function(x,i) {
-        return p1[i] + p2[i]
-      })
-    },
-
-    crossProduct(v1,v2) {
-      return [
-        v1[1] * v2[2] - v1[2] * v2[1],
-        v1[2] * v2[0] - v1[0] * v2[2],
-        v1[0] * v2[1] - v2[1] * v2[0]
-      ]
+      return [ p1[0] - p2[0], p1[1] - p2[1], p1[2] - p2[2]  ]
     },
     
     transpose: function(a) {

@@ -3,7 +3,7 @@
     <!--Estudiante: Ingri Daniela Sepulveda Montaña - Computacion Grafica - Algoritmo:Bresenham  -->
   <body>
     <canvas id="canvas" width="640" height="640" style="border:1px solid #d3d3d3;"></canvas>
-    <script src="https://pagecdn.io/lib/mathjs/10.4.0/math.min.js" crossorigin="anonymous"  ></script>
+    <script src="https://pagecdn.io/lib/mathjs/10.4.0/math.min.js" crossorigin="anonymous"></script>
     <script src="m4.js"></script>
     <script src="graphics.js"></script>
     <script src="transformaciones.js"></script>
@@ -28,18 +28,18 @@
 
         function corte3() {
 
-            // let pl = plano(4);
-            // pl = escalar(pl,3,3,3);
-            // pl = trasladar(pl, 0,0,-2)
+            let pl = plano(4);
+            pl = escalar(pl,3,3,3);
+            pl = trasladar(pl, 0,0,-2)
             
-            // AgregarAEscena(pl, { color: [255,0,0], kd: 1, ka: 1 });
+            AgregarAEscena(pl, { color: [255,0,0], kd: 1, ka: 1 });
 
-            // let pl2 = plano(4);
-            // pl2 = escalar(pl2,3,3,3);
-            // pl2 = rotar(pl2,0,90,0)
-            // p12 = trasladar(pl2, -2,0,0)
+            let pl2 = plano(4);
+            pl2 = escalar(pl2,3,3,3);
+            pl2 = rotar(pl2,0,90,0)
+            p12 = trasladar(pl2, -2,0,0)
             
-            // AgregarAEscena(pl2, { color: [0,255,0], kd: 1, ka: 1 });
+            AgregarAEscena(pl2, { color: [0,255,0], kd: 1, ka: 1 });
 
             let piso = plano(4);
             piso = escalar(piso,3,3,3);
@@ -51,7 +51,7 @@
             let esf = trasladar(esfera(24,12), 0,0,0);
             AgregarAEscena(esf, { color: [76, 137, 139], kd: 1, ka: 1 });
 
-            // AgregarLuz(-4,-4,-1,1);
+            AgregarLuz(-4,-4,-1,1);
 
         }
 
@@ -176,15 +176,15 @@
 
         function calcularEcuacionDePlano(poligono, indicePoligono){
 
-            let u = m4.vector(poligono[0],poligono[1]);
-            let v = m4.vector(poligono[0],poligono[2]);
+            let u = m4.vector(poligono[1],poligono[0]);
+            let v = m4.vector(poligono[2],poligono[0]);
             
-            let vNormal = m4.crossProduct(u,v);
+            let vNormal = math.cross(u,v);
 
             let a = vNormal[0];
             let b = vNormal[1];
             let c = vNormal[2];
-            let d = vNormal[0] * poligono[1][0] + vNormal[1] * poligono[1][1] + vNormal[2] * poligono[1][1]
+            let d = -1 * (vNormal[0] * poligono[0][0] + vNormal[1] * poligono[0][1] + vNormal[2] * poligono[0][2])
 
             let pol = escena.poligonos[indicePoligono];
             pol.ecuacion = { a:a, b:b, c:c, d:d }
@@ -250,7 +250,7 @@
                         if(pz < z && estaContenido)
                         {
                             z = pz;
-                            color = [ poligono.color[0] - pz, poligono.color[1], poligono.color[2] ];
+                            color = [ poligono.color[0], poligono.color[1], poligono.color[2]];
                         }
                     }
                     pixel.push({x,y,color})  
